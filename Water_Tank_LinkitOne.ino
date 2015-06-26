@@ -62,8 +62,6 @@ void setup()
     delay(1000);
   }
   delay(100);
-
-  pinMode(13, OUTPUT);
   getconnectInfo();
   connectTCP();
 }
@@ -149,7 +147,7 @@ void getconnectInfo(){
 void uploadstatus(){
   //calling RESTful API to upload datapoint to MCS to report LED status
   Serial.println("calling connection");
-  LWiFiClient c2;  
+  LWiFiClient c2;
 
   while (!c2.connect(SITE_URL, 80))
   {
@@ -177,7 +175,7 @@ void uploadstatus(){
   c2.println();
   c2.println(Ready);
   
-  delay(500);
+  delay(100);
 
   int errorcount = 0;
   while (!c2.available())
@@ -249,9 +247,8 @@ void loop()
       int v = c.read();
       if (v != -1)
       {
-        Serial.println((char)v);
-        /*tcpcmd += (char)v;
-        if (tcpcmd.substring(40).equals(tcpcmd_led_on)){
+        tcpcmd  +=  (char)v;
+        /*if (tcpcmd.substring(40).equals(tcpcmd_led_on)){
           digitalWrite(13, HIGH);
           Serial.print("Switch LED ON ");
           tcpcmd="";
@@ -261,19 +258,23 @@ void loop()
           tcpcmd="";
         }*/
       }
+      Serial.println(tcpcmd);
+      
    }
-
-  LDateTime.getRtc(&rtc);
+  /*LDateTime.getRtc(&rtc);
   if ((rtc - lrtc) >= per) {
     heartBeat();
     lrtc = rtc;
-  }
+  }*/
   //Check for report datapoint status interval
+  /*uploadstatus();
   LDateTime.getRtc(&rtc1);
   if ((rtc1 - lrtc1) >= per1) {
-    uploadstatus();
-    readyFlag  =  ~readyFlag;
+    if(readyFlag  ==  1)
+      readyFlag  =  0;
+    else
+      readyFlag  =  1;
     lrtc1 = rtc1;
-  }
+  }*/
   
 }
