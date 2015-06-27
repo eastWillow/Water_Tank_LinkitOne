@@ -5,6 +5,7 @@
 #define  PWMB  9
 #define  REVB  8
 #define  FORB  10
+#define  RELAY  13
 /*eastWillow  Added*/
 //#include <b64.h>
 #include <HttpClient.h>
@@ -32,17 +33,29 @@ char ip[21]={0};
 int portnum;
 int val = 0;
 String tcpdata = String(DEVICEID) + "," + String(DEVICEKEY) + ",0";
-String Ready;//eastWilllowEdit
-String tcpcmd_led_on = "LED_Control,1";//eastWilllowEdit
-String tcpcmd_led_off = "LED_Control,0";//eastWilllowEdit
-bool  readyFlag  =  0;
+String Water_Status  =  "Water_Status,,0";  //eastWilllowEdit
+String  LeftMotorNowSpeed  =  "LeftMotorNowSpeed,,125";
+String  RightMotorNowSpeed  =  "RightMotorNowSpeed,,125";
+int  leftSpeed  =  0;
+int  rightSpeed  =  0;
 
 LWiFiClient c2;
 HttpClient http(c2);
 
 void setup()
 {
-  
+  /*eastWillow*/
+  pinMode(RELAY,OUTPUT);
+  pinMode(REVA,OUTPUT);
+  pinMode(FORA,OUTPUT);
+  pinMode(REVB,OUTPUT);
+  pinMode(FORB,OUTPUT);
+  digitalWrite(RELAY,LOW);
+  digitalWrite(REVA,LOW);
+  digitalWrite(FORA,LOW);
+  digitalWrite(REVB,LOW);
+  digitalWrite(FORB,LOW);
+  /*eastWillow*/
   LTask.begin();
   LWiFi.begin();
   Serial.begin(115200);
@@ -144,7 +157,7 @@ void getconnectInfo(){
 
 } //getconnectInfo
 
-void uploadstatus(){
+void uploadstatus(String  Output){
   //calling RESTful API to upload datapoint to MCS to report LED status
   Serial.println("calling connection");
   LWiFiClient c2;
@@ -155,11 +168,8 @@ void uploadstatus(){
     delay(1000);
   }
   delay(100);
-  if(readyFlag  ==  1)
-  Ready = "Ready,,1";
-  else
-  Ready = "Ready,,0";
-  int thislength = Ready.length();
+  
+  int thislength = Output.length();
   HttpClient http(c2);
   c2.print("POST /mcs/v2/devices/");
   c2.print(DEVICEID);
@@ -173,8 +183,8 @@ void uploadstatus(){
   c2.println("Content-Type: text/csv");
   c2.println("Connection: close");
   c2.println();
-  c2.println(Ready);
-  
+  c2.println(Output);
+ 
   delay(100);
 
   int errorcount = 0;
@@ -242,38 +252,40 @@ void loop()
 {
   //Check for TCP socket command from MCS Server 
   String tcpcmd="";
+  
   while (c.available())
    {
       int v = c.read();
       if (v != -1)
       {
+        //Serial.print(tcpcmd);
         tcpcmd  +=  (char)v;
-        /*if (tcpcmd.substring(40).equals(tcpcmd_led_on)){
-          digitalWrite(13, HIGH);
-          Serial.print("Switch LED ON ");
-          tcpcmd="";
-        }else if(tcpcmd.substring(40).equals(tcpcmd_led_off)){  
-          digitalWrite(13, LOW);
-          Serial.print("Switch LED OFF");
-          tcpcmd="";
-        }*/
+        if(tcpcmd.startsWith("0",tcpcmd.indexOf("Water,")+6)){
+          digitalWrite(RELAY,LOW);
+          Water_Status  =  "Water_Status,,0";
+        }
+        else  if(tcpcmd.startsWith("1",tcpcmd.indexOf("Water,")+6)){
+          digitalWrite(RELAY,HIGH);
+          Water_Status  =  "Water_Status,,1";
+        }
+        leftSpeed  =  (tcpcmd.substring(tcpcmd.indexOf("LeftMotorSpeed,")+15)).toInt();
+        LeftMotorNowSpeed  =  "LeftMotorNowSpeed,,"+String(leftSpeed);
+        rightSpeed  =  (tcpcmd.substring(tcpcmd.indexOf("RightMotorSpeed,")+16)).toInt();
+        RightMotorNowSpeed  =  "RightMotorNowSpeed,,"+String(rightSpeed);
       }
-      Serial.println(tcpcmd);
-      
    }
-  /*LDateTime.getRtc(&rtc);
+  uploadstatus(Water_Status);
+  uploadstatus(LeftMotorNowSpeed);
+  uploadstatus(RightMotorNowSpeed);
+  LDateTime.getRtc(&rtc);
   if ((rtc - lrtc) >= per) {
     heartBeat();
     lrtc = rtc;
-  }*/
+  }
   //Check for report datapoint status interval
-  /*uploadstatus();
+  /*
   LDateTime.getRtc(&rtc1);
   if ((rtc1 - lrtc1) >= per1) {
-    if(readyFlag  ==  1)
-      readyFlag  =  0;
-    else
-      readyFlag  =  1;
     lrtc1 = rtc1;
   }*/
   
